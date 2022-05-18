@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PipelineBuildEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <SourceFile>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Sprites/Ship.png</SourceFile>
-  <SourceTime>2022-05-16T11:22:51.3830056+02:00</SourceTime>
+  <SourceTime>2022-05-18T09:59:01.8811279+02:00</SourceTime>
   <DestFile>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/bin/DesktopGL/Content/Sprites/Ship.xnb</DestFile>
-  <DestTime>2022-05-16T11:24:09.7122395+02:00</DestTime>
+  <DestTime>2022-05-18T09:59:12.9215139+02:00</DestTime>
   <Importer>TextureImporter</Importer>
   <ImporterTime>2020-08-10T18:17:54+02:00</ImporterTime>
   <Processor>TextureProcessor</Processor>
