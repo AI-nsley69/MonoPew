@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SourceFileCollection xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Profile>Reach</Profile>
+  <Platform>DesktopGL</Platform>
+  <Config />
+  <SourceFiles>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Fonts/GameFont.spritefont</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Fonts/MenuFont.spritefont</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Misc/Bullet.png</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Misc/Coin.png</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Sounds/uwu.wav</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Sprites/Boss.png</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Sprites/Enemy.png</File>
+    <File>C:/Users/20bear/Documents/RiderProjects/MyGame/Content/Sprites/Ship.png</File>
+  </SourceFiles>
+  <DestFiles>
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+    <File xsi:nil="true" />
+  </DestFiles>
+</SourceFileCollection>
