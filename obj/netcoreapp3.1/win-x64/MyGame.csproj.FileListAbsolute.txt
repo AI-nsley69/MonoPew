@@ -243,3 +243,4 @@ C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\mscorrc
 C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\mscorrc.dll
 C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\ucrtbase.dll
 C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\Content\Misc\Bullet.xnb
+C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\Content\Sounds\uwu.xnb

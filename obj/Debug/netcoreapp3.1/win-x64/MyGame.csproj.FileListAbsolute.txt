@@ -243,3 +243,4 @@ C:\Users\20bear\Documents\RiderProjects\MyGame\obj\Debug\netcoreapp3.1\win-x64\M
 C:\Users\20bear\Documents\RiderProjects\MyGame\obj\Debug\netcoreapp3.1\win-x64\MyGame.dll
 C:\Users\20bear\Documents\RiderProjects\MyGame\obj\Debug\netcoreapp3.1\win-x64\MyGame.pdb
 C:\Users\20bear\Documents\RiderProjects\MyGame\obj\Debug\netcoreapp3.1\win-x64\MyGame.genruntimeconfig.cache
+C:\Users\20bear\Documents\RiderProjects\MyGame\bin\Debug\netcoreapp3.1\win-x64\Content\Sounds\uwu.xnb

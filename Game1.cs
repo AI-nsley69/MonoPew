@@ -193,13 +193,17 @@ namespace MyGame
                 if (MainShip.Lives < 3) MainShip.Lives += 1;
                 MainShip.PowerUpHit = false;
             }
+            // Update hitbox by  its own to prevent unnecessary calculations
+            foreach (var e in Enemies.ToList())
+            {
+                e.UpdateHitbox(Textures.Enemy);
+            }
 
             foreach (var b in Bullets.ToList())
             {
                 b.UpdateHitbox(Textures.Bullet);
                 foreach (var e in Enemies.ToList())
                 {
-                    e.UpdateHitbox(Textures.Enemy);
                     if (!CheckCollision(b.Hitbox, e.Hitbox)) continue;
                     Bullets.Remove(b);
                     Enemies.Remove(e);
@@ -217,7 +221,6 @@ namespace MyGame
 
             foreach (var e in Enemies.ToList())
             {
-                e.UpdateHitbox(Textures.Enemy);
                 var hit = CheckCollision(MainShip.Hitbox, e.Hitbox);
                 if (!hit) continue; 
                 MainShip.Lives -= 1;
@@ -227,7 +230,6 @@ namespace MyGame
 
             foreach (var b in Bosses)
             {
-                b.UpdateHitbox(Textures.Boss);
                 var hit = CheckCollision(MainShip.Hitbox, b.Hitbox);
                 if (!hit) continue;
                 MainShip.Lives -= 1;
