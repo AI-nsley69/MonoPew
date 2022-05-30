@@ -12,12 +12,9 @@ namespace MyGame
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
-
         private SpriteBatch _spriteBatch;
-
-        // Initialze bool for gameover/menu
-        private bool isPaused = true;
-
+        // Initialze state (0 = paused, 1 = running, 2 = game over)
+        private int GameState = 0;
         // Initialize the ship
         private Ship MainShip = new Ship();
         private PowerUpLogic PowerUpLogic = new PowerUpLogic();
@@ -26,31 +23,19 @@ namespace MyGame
         // Initialize fonts
         private SpriteFont GameFont;
         private SpriteFont MenuFont;
-
         // Initialize entity lists
-        /*
-        private List<Bullet> Bullets = new List<Bullet>();
-        private List<PowerUp> PowerUps = new List<PowerUp>();
-        private List<Enemy> Enemies = new List<Enemy>();
-        private List<Boss> Bosses = new List<Boss>(); */
-        // index: bullet, powerup, enemy, bosses
-
         private (List<Bullet> Bullets, List<PowerUp> PowerUps, List<Enemy> Enemies, List<Boss> Bosses) Entities = (
             new List<Bullet>(),
             new List<PowerUp>(),
             new List<Enemy>(), 
             new List<Boss>()
         );
-
         // Intialize entity textures
         private Textures Textures = new Textures();
-        
         // Initialize sounds
         private Sounds Sounds = new Sounds();
-
         // Initialize random variable
         private Random Rand = new Random();
-
 
         private void RemoveFrom<T>(List<T> list, T element) 
         {
@@ -176,14 +161,6 @@ namespace MyGame
                 MainShip.Points += 10 * MainShip.CurrentLevel;
                 if (MainShip.Lives < 3) MainShip.Lives += 1;
             }
-            /*
-            foreach (var p in Entities.PowerUps.ToList())
-            {
-                if (CheckCollision(MainShip.Hitbox, p.Hitbox)) continue;
-                Entities.PowerUps.Remove(p);
-                MainShip.Points += 10 * MainShip.CurrentLevel;
-                if (MainShip.Lives < 3) MainShip.Lives += 1;
-            } */
             // Check if bullet hits boss or enemy
             for (var i = Entities.Bullets.Count; i-- > 0;)
             {
@@ -196,7 +173,6 @@ namespace MyGame
                     RemoveFrom(Entities.Enemies, e);
                     MainShip.Points += 50 * MainShip.CurrentLevel;
                 }
-
                 for (var n = Entities.Bosses.Count; n-- > 0;)
                 {
                     var boss = Entities.Bosses[n];
@@ -239,14 +215,9 @@ namespace MyGame
             // Check if enter was pressed
             var keyboardState = Keyboard.GetState();
             if (!keyboardState.IsKeyDown(Keys.Enter)) return;
-            isPaused = false;
-            // Mainship variables
-            if (MainShip.Lives <= 0)
-            {
-                MainShip.Lives = 3;
-                MainShip.CurrentLevel = 1;
-                MainShip.Points = 0;
-            }
+            if (GameState == 0) OnNextLevel();
+            if (GameState == 2) OnGameOver();
+            GameState = 1;
             MainShip.Speed = new Vector2(6.5f + (MainShip.CurrentLevel / 8), 6.5f + (MainShip.CurrentLevel / 10));
             // Enemies variables
             EnemyLogic.BossRequirement = 3 + (2 * MainShip.CurrentLevel);
@@ -259,6 +230,18 @@ namespace MyGame
             PowerUpLogic.LastPickUp = MainShip.Points;
             PowerUpLogic.PointsInterval = 100 * MainShip.CurrentLevel; 
             SetSpawnPoint();
+        }
+        private void OnNextLevel()
+        {
+            MainShip.CurrentLevel += 1;
+        }
+        
+        private void OnGameOver()
+        {
+            // Mainship variables
+            MainShip.Lives = 3;
+            MainShip.CurrentLevel = 0;
+            MainShip.Points = 0;
         }
 
         private void SummonEnemy()
@@ -295,7 +278,7 @@ namespace MyGame
 
         private void CheckHealth()
         {
-            if (MainShip.Lives <= 0) isPaused = true;
+            if (MainShip.Lives <= 0) GameState = 2;
         }
 
         private void SummonBoss(GameTime gameTime)
@@ -312,8 +295,7 @@ namespace MyGame
             if (!(Entities.Bosses.Count > 0)) SummonBoss(gameTime);
             if (Entities.Bosses[0].HitPoints <= 0)
             {
-                isPaused = true;
-                MainShip.CurrentLevel += 1;
+                GameState = 0;
             }
             Entities.Bosses[0].Pos += Entities.Bosses[0].Speed;
         }
@@ -324,30 +306,42 @@ namespace MyGame
                 Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            // TODO: Add your update logic here
-            CheckHealth();
-            
-            if (isPaused)
+            switch (GameState)
             {
-                OnPaused(gameTime);
-                return;
+                // Paused / next level
+                case 0:
+                {
+                    OnPaused(gameTime);
+                    break;
+                }
+                // Running
+                case 1:
+                {
+                    // Check ship health
+                    CheckHealth();
+                    // Boss logic
+                    BossLogic(gameTime);
+                    // Check to see if the game should spawn enemies
+                    SpawnEnemies(gameTime);
+                    // Check to see if the game should spawn powerups
+                    SpawnPowerUps();
+                    // Update bullets and enemy positions
+                    UpdateBulletEnemyPositionAbstractFactoryLocalizerInstanceMethodAbstraction();
+                    // Update all of the hitboxes
+                    UpdateHitboxes();
+                    // Check the player input and do stuff accordingly
+                    CheckPlayerInput();
+                    // Check boundaries on ship, enemies and bullet
+                    CheckBounds();
+                    break;
+                }
+                // On Gameover
+                case 2:
+                {
+                    OnPaused(gameTime);
+                    break;
+                }
             }
-            
-            // Boss logic
-            BossLogic(gameTime);
-            // Check to see if the game should spawn enemies
-            SpawnEnemies(gameTime);
-            // Check to see if the game should spawn powerups
-            SpawnPowerUps();
-            // Update bullets and enemy positions
-            UpdateBulletEnemyPositionAbstractFactoryLocalizerInstanceMethodAbstraction();
-            // Update all of the hitboxes
-            UpdateHitboxes();
-            // Check the player input and do stuff accordingly
-            CheckPlayerInput();
-            // Check boundaries on ship, enemies and bullet
-            CheckBounds();
-
             base.Update(gameTime);
         }
 
@@ -359,35 +353,39 @@ namespace MyGame
             _spriteBatch.Begin();
             _spriteBatch.Draw(MainShip.Texture, MainShip.Pos, MainShip.Color);
             MainShip.Color = Color.White;
-            if (isPaused)
+            switch (GameState)
             {
-                if (MainShip.Lives < 1)
+                // Paused/next level
+                case 0:
                 {
-                    _spriteBatch.DrawString(MenuFont,
-                        MainShip.CurrentLevel == 1 ? "Press Enter to start!\nUse Arrow Keys to move\nUse Spacebar to shoot" : "Game Over!\nPress Enter to restart\nPoints: " + MainShip.Points,
-                        new Vector2(Window.ClientBounds.Width / 10f, 50), Color.Red);
-                }
-                else
-                {
-                    _spriteBatch.DrawString(MenuFont, "Congratulations!\nYou have beaten the boss!\nPress Enter\nto proceed to level " + MainShip.CurrentLevel,
+                    if (MainShip.Lives <= 0) _spriteBatch.DrawString(MenuFont, "Press Enter to start!\nUse Arrow Keys to move\nSpacebar to shoot",
+                        new Vector2(Window.ClientBounds.Width / 12f, 50), Color.MediumVioletRed);
+                    else _spriteBatch.DrawString(MenuFont, "Congratulations!\nYou have beaten the boss!\nPress Enter\nto proceed to level " + (MainShip.CurrentLevel + 1),
                         new Vector2(Window.ClientBounds.Width / 12f, 50), Color.Green);
+                    break;
                 }
-
+                // Running
+                case 1:
+                {
+                    // Draw information like points, lives and current level
+                    _spriteBatch.DrawString(GameFont, "Points: " + MainShip.Points, new Vector2(10, 10), Color.Purple);
+                    _spriteBatch.DrawString(GameFont, "Lives: " + MainShip.Lives, new Vector2(10, 30), Color.PaleVioletRed);
+                    _spriteBatch.DrawString(GameFont, "Level: " + MainShip.CurrentLevel, new Vector2(10, 50), Color.LimeGreen);
+                    // Draw entities
+                    Entities.Bullets.ForEach(b => _spriteBatch.Draw(Textures.Bullet, b.Pos, Color.White));
+                    Entities.Enemies.ForEach(e => _spriteBatch.Draw(Textures.Enemy, e.Pos, Color.White));
+                    Entities.PowerUps.ForEach(p => _spriteBatch.Draw(Textures.PowerUp, p.Pos, Color.White));
+                    Entities.Bosses.ForEach(b => _spriteBatch.Draw(Textures.Boss, b.Pos, Color.White));
+                    break;
+                }
+                // Game Over
+                case 2:
+                {
+                    _spriteBatch.DrawString(MenuFont, "Game Over!\nPress Enter to restart\nYour points: " + MainShip.Points, new Vector2(Window.ClientBounds.Width / 12f, 50), Color.Red);
+                    break;
+                }
             }
-            else
-            {
-                _spriteBatch.DrawString(GameFont, "Points: " + MainShip.Points, new Vector2(10, 10), Color.Purple);
-                _spriteBatch.DrawString(GameFont, "Lives: " + MainShip.Lives, new Vector2(10, 30), Color.PaleVioletRed);
-                _spriteBatch.DrawString(GameFont, "Level: " + MainShip.CurrentLevel, new Vector2(10, 50), Color.LimeGreen);
-            }
-            // Draw entities
-            Entities.Bullets.ForEach(b => _spriteBatch.Draw(Textures.Bullet, b.Pos, Color.White));
-            Entities.Enemies.ForEach(e => _spriteBatch.Draw(Textures.Enemy, e.Pos, Color.White));
-            Entities.PowerUps.ForEach(p => _spriteBatch.Draw(Textures.PowerUp, p.Pos, Color.White));
-            Entities.Bosses.ForEach(b => _spriteBatch.Draw(Textures.Boss, b.Pos, Color.White));
-            
             _spriteBatch.End();
-
             base.Draw(gameTime);
         }
     }
