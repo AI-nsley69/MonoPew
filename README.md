@@ -4,6 +4,13 @@ A simple Space Invaders-like game I created as a final assignment for my program
 # Prebuilt binaries
 The latest binaries can be found on my [jenkins server](https://jenkins.trainsley69.me/job/MonoPew/).
 
+# Compiling
+To compile the game you need dotnet 3.1 installed, then you can run (substitute `$OS` with your operating system):
+```
+dotnet -r $OS -p:PublishReadyToRun=true
+```
+and then you can find your binary in `bin/Debug/netcoreapp3.1/$OS/public/MyGame`. The binary may end in .exe if it's targeted for windows.
+
 # Controls & Gameplay
 Press `Enter` to start the game.
 
