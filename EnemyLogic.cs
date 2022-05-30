@@ -9,7 +9,7 @@ namespace MyGame
     public class EnemyLogic
     {
         public int Spawned = 0;
-        public int Max;
+        public int BossRequirement;
         public TimeSpan LastSpawned;
         public Vector2 Speed = new Vector2(0, 2);
     }
