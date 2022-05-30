@@ -13,13 +13,18 @@ namespace MyGame
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-        // Initialze state (0 = paused, 1 = running, 2 = game over)
-        private int GameState = 0;
+        // Initialze state
+        enum gameState
+        {
+            Paused,
+            Running,
+            GameOver
+        }
+        private gameState GameState = gameState.Paused;
         // Initialize the ship
         private Ship MainShip = new Ship();
         private PowerUpLogic PowerUpLogic = new PowerUpLogic();
         private EnemyLogic EnemyLogic = new EnemyLogic();
-
         // Initialize fonts
         private SpriteFont GameFont;
         private SpriteFont MenuFont;
@@ -36,7 +41,7 @@ namespace MyGame
         private Sounds Sounds = new Sounds();
         // Initialize random variable
         private Random Rand = new Random();
-
+        // Faster list removal
         private void RemoveFrom<T>(List<T> list, T element) 
         {
             for (int i = list.Count; i-- > 0;)
@@ -52,7 +57,7 @@ namespace MyGame
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
         }
-
+        // Method to easily set spawn point
         private void SetSpawnPoint()
         {
             MainShip.Pos = new Vector2(Window.ClientBounds.Width / 2, Window.ClientBounds.Height / 1.5f);
@@ -60,7 +65,6 @@ namespace MyGame
 
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
             _graphics.PreferredBackBufferWidth = 900;
             _graphics.PreferredBackBufferHeight = 500;
             _graphics.ApplyChanges();
@@ -70,8 +74,6 @@ namespace MyGame
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            // TODO: use this.Content to load your game content here
             // Font
             GameFont = Content.Load<SpriteFont>("Fonts/GameFont");
             MenuFont = Content.Load<SpriteFont>("Fonts/MenuFont");
@@ -84,7 +86,7 @@ namespace MyGame
             // Sound
             Sounds.Shoot = Content.Load<SoundEffect>("Sounds/uwu");
         }
-
+        // Summon a bullet at the correct position
         private void SummonBullet()
         {
             if (MainShip.BulletCooldown > 0) return;
@@ -93,7 +95,7 @@ namespace MyGame
             MainShip.BulletCooldown = 15;
             Sounds.Shoot.Play();
         }
-
+        // Check the player input for movement speed and summoning a bullet
         private void CheckPlayerInput()
         {
             var keyboardState = Keyboard.GetState();
@@ -105,7 +107,7 @@ namespace MyGame
             // Call summon bullet if space is pressed down
             if (keyboardState.IsKeyDown(Keys.Space)) SummonBullet();
         }
-
+        // Check enemy boundary
         private void CheckBounds()
         {
             // Check if the ship hits the side, if so, invert the ship's speed
@@ -118,20 +120,22 @@ namespace MyGame
             float upperBound = 0;
             if (MainShip.Pos.Y > lowerBound) MainShip.Pos.Y = lowerBound;
             if (MainShip.Pos.Y < upperBound) MainShip.Pos.Y = upperBound;
-            
-            foreach (var e in Entities.Enemies.ToList()
-                         .Where(e => !(e.Pos.Y < Window.ClientBounds.Height - Textures.Enemy.Height)))
+            // Check if enemies have travelled all the way, if so decrement the ship lives
+            for (var i = Entities.Enemies.Count; i-- > 0;)
             {
-                Entities.Enemies.Remove(e);
+                var e = Entities.Enemies[i];
+                if (!(e.Pos.Y > Window.ClientBounds.Height - Textures.Enemy.Height)) continue;
+                RemoveFrom(Entities.Enemies, e);
                 MainShip.Lives -= 1;
-                MainShip.Color = Color.Red;
             }
-
-            foreach (var b in Entities.Bullets.ToList().Where(b => !(b.Pos.Y > 0)))
+            // Remove bullets out of bounds
+            for (var i = Entities.Bullets.Count; i-- > 0;)
             {
-                Entities.Bullets.Remove(b);
+                var b = Entities.Bullets[i];
+                if (!(b.Pos.Y < 0)) continue;
+                RemoveFrom(Entities.Bullets, b);
             }
-
+            // Movement for boss
             Entities.Bosses.ForEach(b =>
             {
                 if (b.Pos.X < 0) b.Speed.X = 7f + MainShip.CurrentLevel;
@@ -198,11 +202,12 @@ namespace MyGame
             }
         }
 
-        private void UpdateBulletEnemyPositionAbstractFactoryLocalizerInstanceMethodAbstraction()
+        private void UpdatePosition()
         {
             MainShip.BulletCooldown -= 1;
             Entities.Bullets.ForEach(b => b.Pos += b.Speed);
             Entities.Enemies.ForEach(e => e.Pos += EnemyLogic.Speed);
+            Entities.Bosses.ForEach(b => b.Pos += b.Speed);
         }
 
         private void OnPaused(GameTime gameTime)
@@ -215,9 +220,9 @@ namespace MyGame
             // Check if enter was pressed
             var keyboardState = Keyboard.GetState();
             if (!keyboardState.IsKeyDown(Keys.Enter)) return;
-            if (GameState == 0) OnNextLevel();
-            if (GameState == 2) OnGameOver();
-            GameState = 1;
+            if (GameState == gameState.Paused) OnNextLevel();
+            if (GameState == gameState.GameOver) OnGameOver();
+            GameState = gameState.Running;
             MainShip.Speed = new Vector2(6.5f + (MainShip.CurrentLevel / 8), 6.5f + (MainShip.CurrentLevel / 10));
             // Enemies variables
             EnemyLogic.BossRequirement = 3 + (2 * MainShip.CurrentLevel);
@@ -278,7 +283,7 @@ namespace MyGame
 
         private void CheckHealth()
         {
-            if (MainShip.Lives <= 0) GameState = 2;
+            if (MainShip.Lives <= 0) GameState = gameState.GameOver;
         }
 
         private void SummonBoss(GameTime gameTime)
@@ -293,10 +298,7 @@ namespace MyGame
         {
             if (!(EnemyLogic.Spawned >= EnemyLogic.BossRequirement)) return;
             if (!(Entities.Bosses.Count > 0)) SummonBoss(gameTime);
-            if (Entities.Bosses[0].HitPoints <= 0)
-            {
-                GameState = 0;
-            }
+            if (Entities.Bosses[0].HitPoints <= 0) GameState = gameState.Paused;
             Entities.Bosses[0].Pos += Entities.Bosses[0].Speed;
         }
 
@@ -309,13 +311,13 @@ namespace MyGame
             switch (GameState)
             {
                 // Paused / next level
-                case 0:
+                case gameState.Paused:
                 {
                     OnPaused(gameTime);
                     break;
                 }
                 // Running
-                case 1:
+                case gameState.Running:
                 {
                     // Check ship health
                     CheckHealth();
@@ -326,7 +328,7 @@ namespace MyGame
                     // Check to see if the game should spawn powerups
                     SpawnPowerUps();
                     // Update bullets and enemy positions
-                    UpdateBulletEnemyPositionAbstractFactoryLocalizerInstanceMethodAbstraction();
+                    UpdatePosition();
                     // Update all of the hitboxes
                     UpdateHitboxes();
                     // Check the player input and do stuff accordingly
@@ -336,7 +338,7 @@ namespace MyGame
                     break;
                 }
                 // On Gameover
-                case 2:
+                case gameState.GameOver:
                 {
                     OnPaused(gameTime);
                     break;
@@ -356,7 +358,7 @@ namespace MyGame
             switch (GameState)
             {
                 // Paused/next level
-                case 0:
+                case gameState.Paused:
                 {
                     if (MainShip.Lives <= 0) _spriteBatch.DrawString(MenuFont, "Press Enter to start!\nUse Arrow Keys to move\nSpacebar to shoot",
                         new Vector2(Window.ClientBounds.Width / 12f, 50), Color.MediumVioletRed);
@@ -365,7 +367,7 @@ namespace MyGame
                     break;
                 }
                 // Running
-                case 1:
+                case gameState.Running:
                 {
                     // Draw information like points, lives and current level
                     _spriteBatch.DrawString(GameFont, "Points: " + MainShip.Points, new Vector2(10, 10), Color.Purple);
@@ -379,7 +381,7 @@ namespace MyGame
                     break;
                 }
                 // Game Over
-                case 2:
+                case gameState.GameOver:
                 {
                     _spriteBatch.DrawString(MenuFont, "Game Over!\nPress Enter to restart\nYour points: " + MainShip.Points, new Vector2(Window.ClientBounds.Width / 12f, 50), Color.Red);
                     break;
