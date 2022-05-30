@@ -205,33 +205,33 @@ namespace MyGame
             // Update hitbox by  its own to prevent unnecessary calculations
             Entities.Enemies.ForEach(e => e.UpdateHitbox(Textures.Enemy));
 
-            Entities.Bullets.ForEach(b =>
+            Entities.Bullets.ToList().ForEach(b =>
             {
                 b.UpdateHitbox(Textures.Bullet);
-                Entities.Enemies.ForEach(e =>
+                Entities.Enemies.ToList().ForEach(e =>
                 {
                     if (!CheckCollision(b.Hitbox, e.Hitbox)) return;
                     Entities.Bullets.Remove(b);
                     Entities.Enemies.Remove(e);
                     MainShip.Points = 50 * MainShip.CurrentLevel;
                 });
-                Entities.Bosses.ForEach(boss =>
+                Entities.Bosses.ToList().ForEach(boss =>
                 {
-
+                    boss.UpdateHitbox(Textures.Boss);
                     if (!CheckCollision(b.Hitbox, boss.Hitbox)) return;
                     boss.HitPoints -= 1;
                     Entities.Bullets.Remove(b);
                 });
             });
 
-            Entities.Enemies.ForEach(e =>
+            Entities.Enemies.ToList().ForEach(e =>
             {
                 if (!CheckCollision(MainShip.Hitbox, e.Hitbox)) return;
                 MainShip.Lives -= 1;
                 Entities.Enemies.Remove(e);
             });
 
-            Entities.Bosses.ForEach(b =>
+            Entities.Bosses.ToList().ForEach(b =>
             {
                 if (!CheckCollision(MainShip.Hitbox, b.Hitbox)) return;
                 MainShip.Lives -= 1;
@@ -271,10 +271,10 @@ namespace MyGame
                 PowerUpLogic.PointsInterval = 100 * MainShip.CurrentLevel;
             }
             SetSpawnPoint();
-            Entities.Bullets.ForEach(b => Entities.Bullets.Remove(b));
-            Entities.Enemies.ForEach(e => Entities.Enemies.Remove(e));
-            Entities.PowerUps.ForEach(p => Entities.PowerUps.Remove(p));
-            Entities.Bosses.ForEach(b => Entities.Bosses.Remove(b));
+            Entities.Bullets.ToList().ForEach(b => Entities.Bullets.Remove(b));
+            Entities.Enemies.ToList().ForEach(e => Entities.Enemies.Remove(e));
+            Entities.PowerUps.ToList().ForEach(p => Entities.PowerUps.Remove(p));
+            Entities.Bosses.ToList().ForEach(b => Entities.Bosses.Remove(b));
         }
 
         private void SummonEnemy()
@@ -400,7 +400,7 @@ namespace MyGame
             Entities.Bullets.ForEach(b => _spriteBatch.Draw(Textures.Bullet, b.Pos, Color.White));
             Entities.Enemies.ForEach(e => _spriteBatch.Draw(Textures.Enemy, e.Pos, Color.White));
             Entities.PowerUps.ForEach(p => _spriteBatch.Draw(Textures.PowerUp, p.Pos, Color.White));
-            Entities.Bullets.ForEach(b => _spriteBatch.Draw(Textures.Boss, b.Pos, Color.White));
+            Entities.Bosses.ForEach(b => _spriteBatch.Draw(Textures.Boss, b.Pos, Color.White));
             
             _spriteBatch.End();
 
