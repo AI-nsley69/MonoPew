@@ -290,7 +290,7 @@ namespace MyGame
         {
             var tmpPos = new Vector2(Window.ClientBounds.Width / 2 + Textures.Boss.Width, 30);
             Entities.Bosses.Add(new Boss(tmpPos, 1 + 2 * MainShip.CurrentLevel));
-            Entities.Bosses[0].Speed.X = 7f + MainShip.CurrentLevel;
+            Entities.Bosses.ForEach(b => b.Speed.X = 7f + MainShip.CurrentLevel);
             EnemyLogic.LastSpawned = gameTime.TotalGameTime;
         }
 
@@ -299,7 +299,6 @@ namespace MyGame
             if (!(EnemyLogic.Spawned >= EnemyLogic.BossRequirement)) return;
             if (!(Entities.Bosses.Count > 0)) SummonBoss(gameTime);
             if (Entities.Bosses[0].HitPoints <= 0) GameState = gameState.Paused;
-            Entities.Bosses[0].Pos += Entities.Bosses[0].Speed;
         }
 
         protected override void Update(GameTime gameTime)
