@@ -52,6 +52,15 @@ namespace MyGame
         private Random Rand = new Random();
 
 
+        private void RemoveFrom<T>(List<T> list, T element) 
+        {
+            for (int i = list.Count; i-- > 0;)
+            {
+                if (!list[i].Equals(element)) continue;
+                list.RemoveAt(i);
+                break;
+            }
+        }
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -103,31 +112,13 @@ namespace MyGame
         private void CheckPlayerInput()
         {
             var keyboardState = Keyboard.GetState();
-            // Change the ship's position
-            if (keyboardState.IsKeyDown(Keys.Right))
-            {
-                MainShip.Pos.X += MainShip.Speed.X;
-            }
-
-            if (keyboardState.IsKeyDown(Keys.Left))
-            {
-                MainShip.Pos.X += MainShip.Speed.X * -1;
-            }
-
-            if (keyboardState.IsKeyDown(Keys.Up))
-            {
-                MainShip.Pos.Y += MainShip.Speed.Y * -1;
-            }
-
-            if (keyboardState.IsKeyDown(Keys.Down))
-            {
-                MainShip.Pos.Y += MainShip.Speed.Y;
-            }
-
-            if (keyboardState.IsKeyDown(Keys.Space))
-            {
-                SummonBullet();
-            }
+            // Change the ship's position if correct key is pressed
+            if (keyboardState.IsKeyDown(Keys.Right)) MainShip.Pos.X += MainShip.Speed.X;
+            if (keyboardState.IsKeyDown(Keys.Left)) MainShip.Pos.X += MainShip.Speed.X * -1;
+            if (keyboardState.IsKeyDown(Keys.Up)) MainShip.Pos.Y += MainShip.Speed.Y * -1;
+            if (keyboardState.IsKeyDown(Keys.Down)) MainShip.Pos.Y += MainShip.Speed.Y;
+            // Call summon bullet if space is pressed down
+            if (keyboardState.IsKeyDown(Keys.Space)) SummonBullet();
         }
 
         private void CheckBounds()
@@ -135,29 +126,14 @@ namespace MyGame
             // Check if the ship hits the side, if so, invert the ship's speed
             float rightBound = Window.ClientBounds.Width - MainShip.Texture.Width;
             float leftBound = 0;
-            if (MainShip.Pos.X > rightBound)
-            {
-                MainShip.Pos.X = rightBound;
-            }
-
-            if (MainShip.Pos.X < leftBound)
-            {
-                MainShip.Pos.X = leftBound;
-            }
-
+            if (MainShip.Pos.X > rightBound) MainShip.Pos.X = rightBound;
+            if (MainShip.Pos.X < leftBound) MainShip.Pos.X = leftBound;
             // Check if the ship hits the top or bottom, if so, invert the ship's speed
             float lowerBound = Window.ClientBounds.Height - MainShip.Texture.Height;
             float upperBound = 0;
-            if (MainShip.Pos.Y > lowerBound)
-            {
-                MainShip.Pos.Y = lowerBound;
-            }
-
-            if (MainShip.Pos.Y < upperBound)
-            {
-                MainShip.Pos.Y = upperBound;
-            }
-
+            if (MainShip.Pos.Y > lowerBound) MainShip.Pos.Y = lowerBound;
+            if (MainShip.Pos.Y < upperBound) MainShip.Pos.Y = upperBound;
+            
             foreach (var e in Entities.Enemies.ToList()
                          .Where(e => !(e.Pos.Y < Window.ClientBounds.Height - Textures.Enemy.Height)))
             {
@@ -171,16 +147,11 @@ namespace MyGame
                 Entities.Bullets.Remove(b);
             }
 
-            foreach (var b in Entities.Bosses)
+            Entities.Bosses.ForEach(b =>
             {
-                if (b.Pos.X < 0)
-                {
-                    b.Speed.X = 7f + MainShip.CurrentLevel;
-                } else if (b.Pos.X > Window.ClientBounds.Width - Textures.Boss.Width)
-                {
-                    b.Speed.X = -7f - MainShip.CurrentLevel;
-                }
-            }
+                if (b.Pos.X < 0) b.Speed.X = 7f + MainShip.CurrentLevel;
+                else if (b.Pos.X > Window.ClientBounds.Width - Textures.Boss.Width) b.Speed.X = -7f - MainShip.CurrentLevel;
+            });
         }
 
         private bool CheckCollision(Rectangle ship, Rectangle other)
@@ -190,52 +161,65 @@ namespace MyGame
 
         private void UpdateHitboxes()
         {
+            // Update hitbox on its own to prevent unnecessary calculations
             MainShip.UpdateHitbox();
+            Entities.Bullets.ForEach(b => b.UpdateHitbox(Textures.Bullet));
+            Entities.Enemies.ForEach(e => e.UpdateHitbox(Textures.Enemy));
+            Entities.PowerUps.ForEach(p => p.UpdateHitbox(Textures.PowerUp));
+            Entities.Bosses.ForEach(b => b.UpdateHitbox(Textures.Boss));
+            // Check if ship collides with powerup
+            for (var i = Entities.PowerUps.Count; i-- > 0;)
+            {
+                var p = Entities.PowerUps[i];
+                if (!CheckCollision(MainShip.Hitbox, p.Hitbox)) continue;
+                RemoveFrom(Entities.PowerUps, p);
+                MainShip.Points += 10 * MainShip.CurrentLevel;
+                if (MainShip.Lives < 3) MainShip.Lives += 1;
+            }
+            /*
             foreach (var p in Entities.PowerUps.ToList())
             {
-                p.UpdateHitbox(Textures.PowerUp);
-                MainShip.PowerUpHit = CheckCollision(MainShip.Hitbox, p.Hitbox);
-
-                if (!MainShip.PowerUpHit) continue;
+                if (CheckCollision(MainShip.Hitbox, p.Hitbox)) continue;
                 Entities.PowerUps.Remove(p);
                 MainShip.Points += 10 * MainShip.CurrentLevel;
                 if (MainShip.Lives < 3) MainShip.Lives += 1;
-                MainShip.PowerUpHit = false;
-            }
-            // Update hitbox by  its own to prevent unnecessary calculations
-            Entities.Enemies.ForEach(e => e.UpdateHitbox(Textures.Enemy));
-
-            Entities.Bullets.ToList().ForEach(b =>
+            } */
+            // Check if bullet hits boss or enemy
+            for (var i = Entities.Bullets.Count; i-- > 0;)
             {
-                b.UpdateHitbox(Textures.Bullet);
-                Entities.Enemies.ToList().ForEach(e =>
+                var b = Entities.Bullets[i];
+                for (var n = Entities.Enemies.Count; n-- > 0;)
                 {
-                    if (!CheckCollision(b.Hitbox, e.Hitbox)) return;
-                    Entities.Bullets.Remove(b);
-                    Entities.Enemies.Remove(e);
-                    MainShip.Points = 50 * MainShip.CurrentLevel;
-                });
-                Entities.Bosses.ToList().ForEach(boss =>
+                    var e = Entities.Enemies[n];
+                    if (!CheckCollision(b.Hitbox, e.Hitbox)) continue;
+                    RemoveFrom(Entities.Bullets, b);
+                    RemoveFrom(Entities.Enemies, e);
+                    MainShip.Points += 50 * MainShip.CurrentLevel;
+                }
+
+                for (var n = Entities.Bosses.Count; n-- > 0;)
                 {
-                    boss.UpdateHitbox(Textures.Boss);
-                    if (!CheckCollision(b.Hitbox, boss.Hitbox)) return;
+                    var boss = Entities.Bosses[n];
+                    if (!CheckCollision(b.Hitbox, boss.Hitbox)) continue;
+                    RemoveFrom(Entities.Bullets, b);
                     boss.HitPoints -= 1;
-                    Entities.Bullets.Remove(b);
-                });
-            });
-
-            Entities.Enemies.ToList().ForEach(e =>
+                }
+            }
+            // Check if enemy collides with ship
+            for (var i = Entities.Enemies.Count; i-- > 0;)
             {
-                if (!CheckCollision(MainShip.Hitbox, e.Hitbox)) return;
+                var e = Entities.Enemies[i];
+                if (!CheckCollision(MainShip.Hitbox, e.Hitbox)) continue;
+                RemoveFrom(Entities.Enemies, e);
                 MainShip.Lives -= 1;
-                Entities.Enemies.Remove(e);
-            });
-
-            Entities.Bosses.ToList().ForEach(b =>
+            }
+            // Check if boss collides with ship
+            for (var i = Entities.Bosses.Count; i-- > 0;)
             {
-                if (!CheckCollision(MainShip.Hitbox, b.Hitbox)) return;
+                var b = Entities.Bosses[i];
+                if (!CheckCollision(MainShip.Hitbox, b.Hitbox)) continue;
                 MainShip.Lives -= 1;
-            });
+            }
         }
 
         private void UpdateBulletEnemyPositionAbstractFactoryLocalizerInstanceMethodAbstraction()
@@ -247,34 +231,34 @@ namespace MyGame
 
         private void OnPaused(GameTime gameTime)
         {
+            // Remove all entities
+            Entities.Bullets.ToList().ForEach(b => RemoveFrom(Entities.Bullets, b));
+            Entities.Enemies.ToList().ForEach(e => RemoveFrom(Entities.Enemies, e));
+            Entities.PowerUps.ToList().ForEach(p => RemoveFrom(Entities.PowerUps, p));
+            Entities.Bosses.ToList().ForEach(b => RemoveFrom(Entities.Bosses, b));
+            // Check if enter was pressed
             var keyboardState = Keyboard.GetState();
-            if (keyboardState.IsKeyDown(Keys.Enter))
+            if (!keyboardState.IsKeyDown(Keys.Enter)) return;
+            isPaused = false;
+            // Mainship variables
+            if (MainShip.Lives <= 0)
             {
-                isPaused = false;
-                // Mainship variables
-                if (MainShip.Lives <= 0)
-                {
-                    MainShip.Lives = 3;
-                    MainShip.CurrentLevel = 1;
-                    MainShip.Points = 0;
-                }
-                MainShip.Speed = new Vector2(6.5f + (MainShip.CurrentLevel / 8), 6.5f + (MainShip.CurrentLevel / 10));
-                // Enemies variables
-                EnemyLogic.BossRequirement = 3 + (2 * MainShip.CurrentLevel);
-                EnemyLogic.LastSpawned = gameTime.TotalGameTime;
-                EnemyLogic.Spawned = 0;
-                EnemyLogic.Speed.Y = 1.9f + (MainShip.CurrentLevel / 4);
-                // PowerUp variables
-                PowerUpLogic.Max = 3 + (MainShip.CurrentLevel / 2);
-                PowerUpLogic.Spawned = 0;
-                PowerUpLogic.LastPickUp = MainShip.Points;
-                PowerUpLogic.PointsInterval = 100 * MainShip.CurrentLevel;
+                MainShip.Lives = 3;
+                MainShip.CurrentLevel = 1;
+                MainShip.Points = 0;
             }
+            MainShip.Speed = new Vector2(6.5f + (MainShip.CurrentLevel / 8), 6.5f + (MainShip.CurrentLevel / 10));
+            // Enemies variables
+            EnemyLogic.BossRequirement = 3 + (2 * MainShip.CurrentLevel);
+            EnemyLogic.LastSpawned = gameTime.TotalGameTime;
+            EnemyLogic.Spawned = 0;
+            EnemyLogic.Speed.Y = 1.9f + (MainShip.CurrentLevel / 4);
+            // PowerUp variables
+            PowerUpLogic.Max = 3 + (MainShip.CurrentLevel / 2);
+            PowerUpLogic.Spawned = 0;
+            PowerUpLogic.LastPickUp = MainShip.Points;
+            PowerUpLogic.PointsInterval = 100 * MainShip.CurrentLevel; 
             SetSpawnPoint();
-            Entities.Bullets.ToList().ForEach(b => Entities.Bullets.Remove(b));
-            Entities.Enemies.ToList().ForEach(e => Entities.Enemies.Remove(e));
-            Entities.PowerUps.ToList().ForEach(p => Entities.PowerUps.Remove(p));
-            Entities.Bosses.ToList().ForEach(b => Entities.Bosses.Remove(b));
         }
 
         private void SummonEnemy()
