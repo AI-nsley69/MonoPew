@@ -28,12 +28,12 @@ namespace MyGame
         // Initialize fonts
         private SpriteFont GameFont;
         private SpriteFont MenuFont;
-        // Initialize entity lists
-        private (List<Bullet> Bullets, List<PowerUp> PowerUps, List<Enemy> Enemies, List<Boss> Bosses) Entities = (
-            new List<Bullet>(),
-            new List<PowerUp>(),
-            new List<Enemy>(), 
-            new List<Boss>()
+        // Initialize entity HashSets
+        private (HashSet<Bullet> Bullets, HashSet<PowerUp> PowerUps, HashSet<Enemy> Enemies, HashSet<Boss> Bosses) Entities = (
+            new HashSet<Bullet>(),
+            new HashSet<PowerUp>(),
+            new HashSet<Enemy>(), 
+            new HashSet<Boss>()
         );
         // Intialize entity textures
         private Textures Textures = new Textures();
@@ -41,16 +41,7 @@ namespace MyGame
         private Sounds Sounds = new Sounds();
         // Initialize random variable
         private Random Rand = new Random();
-        // Faster list removal
-        private void RemoveFrom<T>(List<T> list, T element) 
-        {
-            for (int i = list.Count; i-- > 0;)
-            {
-                if (!list[i].Equals(element)) continue;
-                list.RemoveAt(i);
-                break;
-            }
-        }
+        
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -121,26 +112,16 @@ namespace MyGame
             if (MainShip.Pos.Y > lowerBound) MainShip.Pos.Y = lowerBound;
             if (MainShip.Pos.Y < upperBound) MainShip.Pos.Y = upperBound;
             // Check if enemies have travelled all the way, if so decrement the ship lives
-            for (var i = Entities.Enemies.Count; i-- > 0;)
-            {
-                var e = Entities.Enemies[i];
-                if (!(e.Pos.Y > Window.ClientBounds.Height - Textures.Enemy.Height)) continue;
-                RemoveFrom(Entities.Enemies, e);
-                MainShip.Lives -= 1;
-            }
+            foreach (var e in Entities.Enemies.Where(e => e.Pos.Y > Window.ClientBounds.Height - Textures.Enemy.Height)) MainShip.Lives -= 1;
+            Entities.Enemies.RemoveWhere(e => e.Pos.Y > Window.ClientBounds.Height - Textures.Enemy.Height);
             // Remove bullets out of bounds
-            for (var i = Entities.Bullets.Count; i-- > 0;)
-            {
-                var b = Entities.Bullets[i];
-                if (!(b.Pos.Y < 0)) continue;
-                RemoveFrom(Entities.Bullets, b);
-            }
+            Entities.Bullets.RemoveWhere(b => b.Pos.Y < 0);
             // Movement for boss
-            Entities.Bosses.ForEach(b =>
+            foreach (var b in Entities.Bosses)
             {
                 if (b.Pos.X < 0) b.Speed.X = 7f + MainShip.CurrentLevel;
                 else if (b.Pos.X > Window.ClientBounds.Width - Textures.Boss.Width) b.Speed.X = -7f - MainShip.CurrentLevel;
-            });
+            }
         }
 
         private bool CheckCollision(Rectangle ship, Rectangle other)
@@ -150,73 +131,74 @@ namespace MyGame
 
         private void UpdateHitboxes()
         {
+            // Tuplet for lists where we remove entities
+            (List<Bullet> Bullets, List<PowerUp> PowerUps, List<Enemy> Enemies) ToRemove = (
+                new List<Bullet>(),
+                new List<PowerUp>(),
+                new List<Enemy>()
+            );
             // Update hitbox on its own to prevent unnecessary calculations
             MainShip.UpdateHitbox();
-            Entities.Bullets.ForEach(b => b.UpdateHitbox(Textures.Bullet));
-            Entities.Enemies.ForEach(e => e.UpdateHitbox(Textures.Enemy));
-            Entities.PowerUps.ForEach(p => p.UpdateHitbox(Textures.PowerUp));
-            Entities.Bosses.ForEach(b => b.UpdateHitbox(Textures.Boss));
+            foreach (var b in Entities.Bullets) b.UpdateHitbox(Textures.Bullet);
+            foreach (var e in Entities.Enemies) e.UpdateHitbox(Textures.Enemy);
+            foreach (var p in Entities.PowerUps) p.UpdateHitbox(Textures.PowerUp);
+            foreach (var b in Entities.Bosses) b.UpdateHitbox(Textures.Boss);
             // Check if ship collides with powerup
-            for (var i = Entities.PowerUps.Count; i-- > 0;)
+            foreach (var p in Entities.PowerUps.Where(p => CheckCollision(MainShip.Hitbox, p.Hitbox)))
             {
-                var p = Entities.PowerUps[i];
-                if (!CheckCollision(MainShip.Hitbox, p.Hitbox)) continue;
-                RemoveFrom(Entities.PowerUps, p);
+                ToRemove.PowerUps.Add(p);
                 MainShip.Points += 10 * MainShip.CurrentLevel;
                 if (MainShip.Lives < 3) MainShip.Lives += 1;
             }
-            // Check if bullet hits boss or enemy
-            for (var i = Entities.Bullets.Count; i-- > 0;)
+            // Check if boss hits bullet
+            foreach (var b in Entities.Bullets)
             {
-                var b = Entities.Bullets[i];
-                for (var n = Entities.Enemies.Count; n-- > 0;)
+                // Enemy check
+                foreach (var e in Entities.Enemies.Where(e => CheckCollision(b.Hitbox, e.Hitbox)))
                 {
-                    var e = Entities.Enemies[n];
-                    if (!CheckCollision(b.Hitbox, e.Hitbox)) continue;
-                    RemoveFrom(Entities.Bullets, b);
-                    RemoveFrom(Entities.Enemies, e);
+                    ToRemove.Bullets.Add(b);
+                    ToRemove.Enemies.Add(e);
                     MainShip.Points += 50 * MainShip.CurrentLevel;
                 }
-                for (var n = Entities.Bosses.Count; n-- > 0;)
+                // Boss check
+                foreach (var n in Entities.Bosses.Where(n => CheckCollision(b.Hitbox, n.Hitbox)))
                 {
-                    var boss = Entities.Bosses[n];
-                    if (!CheckCollision(b.Hitbox, boss.Hitbox)) continue;
-                    RemoveFrom(Entities.Bullets, b);
-                    boss.HitPoints -= 1;
+                    ToRemove.Bullets.Add(b);
+                    n.HitPoints -= 1;
                 }
             }
             // Check if enemy collides with ship
-            for (var i = Entities.Enemies.Count; i-- > 0;)
+            foreach (var e in Entities.Enemies.Where(e => CheckCollision(MainShip.Hitbox, e.Hitbox)))
             {
-                var e = Entities.Enemies[i];
-                if (!CheckCollision(MainShip.Hitbox, e.Hitbox)) continue;
-                RemoveFrom(Entities.Enemies, e);
                 MainShip.Lives -= 1;
             }
+            Entities.Enemies.RemoveWhere(e => CheckCollision(MainShip.Hitbox, e.Hitbox));
             // Check if boss collides with ship
-            for (var i = Entities.Bosses.Count; i-- > 0;)
+            foreach (var b in Entities.Bosses.Where(b => CheckCollision(MainShip.Hitbox, b.Hitbox)))
             {
-                var b = Entities.Bosses[i];
-                if (!CheckCollision(MainShip.Hitbox, b.Hitbox)) continue;
                 MainShip.Lives -= 1;
             }
+            // Delete all entities
+            ToRemove.Bullets.ForEach(b => Entities.Bullets.Remove(b));
+            ToRemove.Enemies.ForEach(e => Entities.Enemies.Remove(e));
+            ToRemove.PowerUps.ForEach(p => Entities.PowerUps.Remove(p));
         }
 
         private void UpdatePosition()
         {
             MainShip.BulletCooldown -= 1;
-            Entities.Bullets.ForEach(b => b.Pos += b.Speed);
-            Entities.Enemies.ForEach(e => e.Pos += EnemyLogic.Speed);
-            Entities.Bosses.ForEach(b => b.Pos += b.Speed);
+            foreach (var b in Entities.Bullets) b.Pos += b.Speed;
+            foreach (var e in Entities.Enemies) e.Pos += EnemyLogic.Speed;
+            foreach (var b in Entities.Bosses) b.Pos += b.Speed;
         }
 
         private void OnPaused(GameTime gameTime)
         {
             // Remove all entities
-            Entities.Bullets.ToList().ForEach(b => RemoveFrom(Entities.Bullets, b));
-            Entities.Enemies.ToList().ForEach(e => RemoveFrom(Entities.Enemies, e));
-            Entities.PowerUps.ToList().ForEach(p => RemoveFrom(Entities.PowerUps, p));
-            Entities.Bosses.ToList().ForEach(b => RemoveFrom(Entities.Bosses, b));
+            Entities.Bullets.Clear();
+            Entities.Enemies.Clear();
+            Entities.PowerUps.Clear();
+            Entities.Bosses.Clear();
             // Check if enter was pressed
             var keyboardState = Keyboard.GetState();
             if (!keyboardState.IsKeyDown(Keys.Enter)) return;
@@ -290,7 +272,7 @@ namespace MyGame
         {
             var tmpPos = new Vector2(Window.ClientBounds.Width / 2 + Textures.Boss.Width, 30);
             Entities.Bosses.Add(new Boss(tmpPos, 1 + 2 * MainShip.CurrentLevel));
-            Entities.Bosses.ForEach(b => b.Speed.X = 7f + MainShip.CurrentLevel);
+            foreach (var b in Entities.Bosses) b.Speed.X = 7f + MainShip.CurrentLevel;
             EnemyLogic.LastSpawned = gameTime.TotalGameTime;
         }
 
@@ -298,7 +280,7 @@ namespace MyGame
         {
             if (!(EnemyLogic.Spawned >= EnemyLogic.BossRequirement)) return;
             if (!(Entities.Bosses.Count > 0)) SummonBoss(gameTime);
-            if (Entities.Bosses[0].HitPoints <= 0) GameState = gameState.Paused;
+            foreach (var b in Entities.Bosses.Where(b => b.HitPoints <= 0)) GameState = gameState.Paused;
         }
 
         protected override void Update(GameTime gameTime)
@@ -373,10 +355,10 @@ namespace MyGame
                     _spriteBatch.DrawString(GameFont, "Lives: " + MainShip.Lives, new Vector2(10, 30), Color.PaleVioletRed);
                     _spriteBatch.DrawString(GameFont, "Level: " + MainShip.CurrentLevel, new Vector2(10, 50), Color.LimeGreen);
                     // Draw entities
-                    Entities.Bullets.ForEach(b => _spriteBatch.Draw(Textures.Bullet, b.Pos, Color.White));
-                    Entities.Enemies.ForEach(e => _spriteBatch.Draw(Textures.Enemy, e.Pos, Color.White));
-                    Entities.PowerUps.ForEach(p => _spriteBatch.Draw(Textures.PowerUp, p.Pos, Color.White));
-                    Entities.Bosses.ForEach(b => _spriteBatch.Draw(Textures.Boss, b.Pos, Color.White));
+                    foreach (var b in Entities.Bullets) _spriteBatch.Draw(Textures.Bullet, b.Pos, Color.White);
+                    foreach (var e in Entities.Enemies) _spriteBatch.Draw(Textures.Enemy, e.Pos, Color.White);
+                    foreach (var p in Entities.PowerUps) _spriteBatch.Draw(Textures.PowerUp, p.Pos, Color.White);
+                    foreach (var b in Entities.Bosses) _spriteBatch.Draw(Textures.Boss, b.Pos, Color.White);
                     break;
                 }
                 // Game Over
