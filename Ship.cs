@@ -18,8 +18,6 @@ namespace MyGame
         public Vector2 Speed;
         // Field for color on ship
         public Color Color = Color.White;
-        // Bool to check if ship hit a power up
-        public bool PowerUpHit = false;
 
         public int Lives = 0;
         public int CurrentLevel = 1;

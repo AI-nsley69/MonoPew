@@ -1,2 +1,0 @@
-C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\publish\MyGame.pdb
-C:\Users\20bear\Documents\RiderProjects\MyGame\bin\netcoreapp3.1\win-x64\publish\MyGame.exe
